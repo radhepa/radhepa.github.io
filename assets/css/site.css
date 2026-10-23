@@ -77,6 +77,8 @@ p { margin: 0; }
 .site-nav a[aria-current] { color: var(--blue); box-shadow: inset 0 -2px 0 var(--blue); }
 .site-nav a.nav-resume { padding: 0 16px; margin-left: 8px; border: 1px solid var(--ink); border-radius: 4px; }
 .site-nav a.nav-resume:hover { background: var(--ink); color: var(--bg); }
+.site-nav a.nav-icon { padding: 0 10px; }
+.site-nav li:has(> .nav-resume) + li > .nav-icon { margin-left: 4px; }
 
 /* ---------- buttons ---------- */
 .btns { display: flex; flex-wrap: wrap; gap: 12px; }

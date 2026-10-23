@@ -320,6 +320,10 @@ const PROFILE = [
       { key: 'email', label: 'Email', type: 'email' },
       { key: 'github', label: 'GitHub link', type: 'url', placeholder: 'https://github.com/…' },
     ] },
+    { type: 'row', fields: [
+      { key: 'personalEmail', label: 'Personal email (About page)', type: 'email' },
+      { key: 'phone', label: 'Phone (About page)' },
+    ] },
     { key: 'linkedin', label: 'LinkedIn link', type: 'url', placeholder: 'https://www.linkedin.com/in/…' },
   ] },
   { type: 'group', label: 'Home page', fields: [
