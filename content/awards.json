@@ -1,0 +1,43 @@
+{
+  "eyebrow": "",
+  "title": "Awards and credentials",
+  "intro": "",
+  "stats": [],
+  "sections": [
+    {
+      "heading": "Selective programs", "note": "", "state": "", "layout": "timeline",
+      "items": [
+        { "kicker": "2026", "title": "NASA L'SPACE NPWEE", "description": "NASA Proposal Writing and Evaluation Experience. Accepted.", "highlight": true, "status": "", "style": "normal", "link": "", "linkText": "" },
+        { "kicker": "2026", "title": "CodePath · Applications of AI Engineering", "description": "Accepted.", "highlight": true, "status": "", "style": "normal", "link": "", "linkText": "" },
+        { "kicker": "2026", "title": "Purdue EABC Early Start", "description": "Summer 2026 early start program.", "highlight": true, "status": "", "style": "normal", "link": "", "linkText": "" }
+      ]
+    },
+    {
+      "heading": "Academics and competitions", "note": "", "state": "", "layout": "timeline",
+      "items": [
+        { "kicker": "2026", "title": "4.0 GPA, Purdue University", "description": "First-Year Engineering.", "highlight": true, "status": "", "style": "normal", "link": "", "linkText": "" },
+        { "kicker": "2026", "title": "Anchor & Accelerate pitch and case competition", "description": "Purdue.", "highlight": true, "status": "", "style": "normal", "link": "", "linkText": "" },
+        { "kicker": "2024–26", "title": "Indiana College Core, Ivy Tech Community College", "description": "30 college credits completed during high school.", "highlight": false, "status": "", "style": "normal", "link": "", "linkText": "" }
+      ]
+    },
+    {
+      "heading": "Certifications", "note": "", "state": "", "layout": "cards",
+      "items": [
+        { "kicker": "HarvardX", "title": "CS50P: Introduction to Programming with Python", "description": "", "highlight": false, "status": "", "style": "normal", "link": "", "linkText": "" },
+        { "kicker": "HubSpot Academy", "title": "Frictionless Sales", "description": "", "highlight": false, "status": "", "style": "normal", "link": "", "linkText": "" },
+        { "kicker": "HubSpot Academy", "title": "Inbound Marketing", "description": "", "highlight": false, "status": "", "style": "normal", "link": "", "linkText": "" },
+        { "kicker": "HubSpot Academy", "title": "Reporting", "description": "", "highlight": false, "status": "", "style": "normal", "link": "", "linkText": "" },
+        { "kicker": "Purdue · in progress", "title": "EBEC Python programming certificate", "description": "", "highlight": false, "status": "", "style": "pending", "link": "", "linkText": "" }
+      ]
+    },
+    {
+      "heading": "Leadership and speaking", "note": "High school", "state": "", "layout": "timeline",
+      "items": [
+        { "kicker": "2026", "title": "Commencement speaker", "description": "Graduation address, audience of about 2,000.", "highlight": true, "status": "", "style": "normal", "link": "", "linkText": "" },
+        { "kicker": "HS", "title": "Founder, Society of Asian Culture", "description": "", "highlight": false, "status": "", "style": "normal", "link": "", "linkText": "" },
+        { "kicker": "HS", "title": "President, Key Club", "description": "", "highlight": false, "status": "", "style": "normal", "link": "", "linkText": "" },
+        { "kicker": "HS", "title": "Captain, Fine Arts Academic Bowl", "description": "", "highlight": false, "status": "", "style": "normal", "link": "", "linkText": "" }
+      ]
+    }
+  ]
+}

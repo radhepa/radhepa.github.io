@@ -1,0 +1,33 @@
+{
+  "name": "Radhe Patel",
+  "eyebrow": "Electrical Engineering · Purdue",
+  "intro": "First-year engineering student at Purdue, going into Electrical Engineering. This winter I'm a sales engineering intern at Whallon Machinery.",
+  "description": "Radhe Patel: first-year engineering student at Purdue, going into Electrical Engineering. Projects in power electronics, battery management and circuit simulation.",
+  "location": "Purdue University, West Lafayette, IN",
+  "email": "pate3212@purdue.edu",
+  "github": "https://github.com/radhepa",
+  "linkedin": "https://www.linkedin.com/in/radhe--patel",
+  "photo": "assets/img/radhe-patel.webp",
+  "resume": "assets/resume.pdf",
+  "domain": "",
+  "specs": [
+    { "label": "Program", "value": "First-Year Engineering, Purdue", "highlight": false },
+    { "label": "Major", "value": "Electrical Engineering", "highlight": false },
+    { "label": "Focus", "value": "Sales engineering", "highlight": false },
+    { "label": "GPA", "value": "4.0 / 4.0", "highlight": false },
+    { "label": "Hometown", "value": "Logansport, Indiana", "highlight": false },
+    { "label": "Next", "value": "Sales Engineering Intern, Whallon Machinery (winter)", "highlight": false },
+    { "label": "Open to", "value": "Summer 2027 internships", "highlight": true }
+  ],
+  "featuredHeading": "Hardware",
+  "listHeading": "Software, AI and games",
+  "nowLabel": "Now · Fall 2026",
+  "nowHeading": "Teams and programs",
+  "now": [
+    { "name": "Purdue Lunabotics", "text": "PCB design for the team's mining robot." },
+    { "name": "NASA L'SPACE NPWEE", "text": "NASA proposal writing and evaluation program." },
+    { "name": "Purdue Venture Consulting", "text": "Client case for a diagnostics startup." }
+  ],
+  "ctaLabel": "Recruiting",
+  "ctaHeading": "Looking for a Summer 2027 internship in electrical or sales engineering."
+}

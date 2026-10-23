@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tiny SPICE · Radhe Patel</title>
+<meta name="description" content="A SPICE-style circuit simulator in about 1,250 lines of C with no dependencies. It reads a standard netlist, builds the circuit equations with Modified Nodal Analysis, solves nonlinear devices with Newton-Raphson, and steps through time with the trapezoidal rule.">
+<meta name="author" content="Radhe Patel">
+<meta name="theme-color" content="#F5F5F0">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Tiny SPICE · Radhe Patel">
+<meta property="og:description" content="A SPICE-style circuit simulator in about 1,250 lines of C with no dependencies. It reads a standard netlist, builds the circuit equations with Modified Nodal Analysis, solves nonlinear devices with Newton-Raphson, and steps through time with the trapezoidal rule.">
+
+
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../../assets/img/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="Radhe Patel · Lab notebook" href="../../feed.xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;1,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="../../assets/css/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+<nav class="site-nav" aria-label="Primary"><ul><li><a href="../../">Home</a></li><li><a href="../../projects/" aria-current="page">Projects</a></li><li><a href="../../notebook/">Lab notebook</a></li><li><a href="../../awards/">Awards</a></li><li><a href="../../courses/">Courses</a></li><li><a href="../../about/">About</a></li><li><a class="nav-resume" href="../../assets/resume.pdf">Résumé</a></li></ul></nav>
+</header>
+<main id="main">
+<div class="wrap page page-narrow-top">
+<a class="back" href="../../projects/">← Projects</a>
+<section class="case-top">
+<div>
+<div class="meta"><span>Circuit simulation</span><span class="tag tag-built">Built</span></div>
+<h1>Tiny SPICE</h1>
+<p class="lede">A SPICE-style circuit simulator in about 1,250 lines of C with no dependencies. It reads a standard netlist, builds the circuit equations with Modified Nodal Analysis, solves nonlinear devices with Newton-Raphson, and steps through time with the trapezoidal rule.</p>
+<div class="btns">
+<a class="btn btn-primary" href="https://github.com/radhepa/tinyspice" rel="noopener">View on GitHub</a>
+<a class="btn" href="../../notebook/circuit-simulator-from-scratch/">Build log</a>
+</div>
+</div>
+<div class="spec"><div class="spec-head">Specifications</div><dl><div><dt>Language</dt><dd>C, ~1,250 lines, no dependencies</dd></div><div><dt>Equations</dt><dd>Modified Nodal Analysis</dd></div><div><dt>Nonlinear</dt><dd>Newton-Raphson, junction limiting</dd></div><div><dt>Integration</dt><dd>Trapezoidal rule</dd></div><div><dt>Solver</dt><dd>Dense LU, partial pivoting</dd></div><div><dt>Elements</dt><dd>R C L V I D S E</dd></div><div><dt>Tests</dt><dd>36 / 36 unit tests</dd></div></dl></div>
+</section>
+<figure class="wide-fig"><img src="../../assets/figures/tiny-spice/validation.png" alt="tinyspice waveforms overlaid on exact solutions and ngspice results for four test circuits"><figcaption>Fig. 1 · tinyspice vs exact solutions and ngspice: RC, RLC, rectifier and buck converter.</figcaption></figure>
+<div class="reading" style="padding-top: 56px">
+<aside><nav class="toc" aria-label="On this page"><span class="k">On this page</span><a href="#overview"><span>01</span>Overview</a><a href="#architecture"><span>02</span>Architecture</a><a href="#design-decisions"><span>03</span>Design decisions</a><a href="#testing"><span>04</span>Testing</a><a href="#what-i-d-change"><span>05</span>What I'd change</a></nav></aside>
+<article class="prose case">
+<h2 id="overview"><span class="n">01</span>Overview</h2>
+<p>Circuit simulators like SPICE, LTspice and ngspice are used every day in electrical engineering, but they are easy to treat as a black box. I wrote one from scratch to understand the core ideas: how a circuit becomes a matrix, how a diode's exponential gets solved, and how capacitors and inductors are stepped through time.</p>
+<p>It supports resistors, capacitors, inductors, voltage and current sources (dc, pulse, sin, pwl), diodes, switches and voltage-controlled sources, plus <code>.model</code> and <code>.tran</code>, and the usual SPICE unit suffixes.</p>
+<h2 id="architecture"><span class="n">02</span>Architecture</h2>
+<ol><li>Parse the netlist (netlist.c)</li><li>DC operating point: Newton with gmin stepping</li><li>Stamp every element into A x = b</li><li>LU solve (solver.c)</li><li>Converged? If not, re-linearize; after 100 tries, halve the step</li><li>Save capacitor and inductor state, write a CSV row</li></ol>
+<p><strong>Modified Nodal Analysis.</strong> Kirchhoff's current law at every node gives one equation per node. Voltage sources and inductors add one extra unknown each, their current. The result is a square linear system A x = b, and each element &quot;stamps&quot; a few numbers into A and b.</p>
+<p><strong>Companion models.</strong> For a capacitor, i = C dv/dt. Integrating over one step with the trapezoid area rule turns the capacitor into a conductance 2C/h plus a current source that remembers the past, so at every time point the circuit is purely resistive.</p>
+<h2 id="design-decisions"><span class="n">03</span>Design decisions</h2>
+<div class="table-wrap"><table><thead><tr><th scope="col">Question</th><th scope="col">Decision</th></tr></thead><tbody><tr><td>Why the trapezoidal rule?</td><td>Halving the time step cuts the error 4× with the trapezoid rule but only 2× with backward Euler. Measured on a real circuit, the slopes are <strong>1.92</strong> and <strong>0.98</strong> (theory: 2 and 1).</td></tr><tr><td>What about sharp corners?</td><td>The trapezoidal rule &quot;rings&quot; at discontinuities, so one backward-Euler step is taken right after each source corner, as SPICE does.</td></tr><tr><td>Hitting the corners exactly?</td><td>Breakpoints: the time stepper lands exactly on every corner of the PULSE and PWL sources.</td></tr><tr><td>Keeping Newton stable?</td><td>SPICE-style junction-voltage limiting stops the diode equation from jumping into exponential overflow.</td></tr><tr><td>If Newton fails?</td><td>The step is retried at half the size. If the DC operating point fails, gmin stepping starts with large conductances to ground and removes them gradually.</td></tr></tbody></table></div>
+<h2 id="testing"><span class="n">04</span>Testing</h2>
+<div class="table-wrap"><table><thead><tr><th scope="col">Test</th><th scope="col">Reference</th><th scope="col">Result</th></tr></thead><tbody><tr><td>RC step response</td><td>exact solution</td><td>max error 4.9 × 10⁻⁵ V</td></tr><tr><td>Series RLC step (ζ = 0.1)</td><td>exact solution</td><td>overshoot 90.49 % vs 90.54 % theory</td></tr><tr><td>Half-wave diode rectifier</td><td>ngspice 47</td><td>0.004 % RMS difference</td></tr><tr><td>48 V → 12 V buck converter</td><td>ngspice 47</td><td>0.009 % RMS difference, V<sub>out</sub> 11.340 V vs 11.340 V</td></tr><tr><td>Order of accuracy</td><td>theory 2 and 1</td><td>measured 1.92 and 0.98</td></tr><tr><td>Unit tests</td><td></td><td>36 / 36 passing</td></tr></tbody></table></div>
+<figure><img src="../../assets/figures/tiny-spice/order_of_accuracy.png" alt="Log-log plot of error vs time step for trapezoidal and backward Euler integration" loading="lazy"><figcaption>Fig. 3 · Error vs time step: the trapezoid rule is second order, Euler first order.</figcaption></figure>
+<h2 id="what-i-d-change"><span class="n">05</span>What I'd change</h2>
+<ul><li>The matrix is dense, so solving is O(n³). That is fine for hundreds of nodes; thousands would need a sparse LU.</li><li>The step size is fixed, with halving on failure. Real SPICE also adapts the step from a local truncation-error estimate.</li><li>Next: a MOSFET model, AC small-signal analysis, and the sparse solver.</li></ul>
+<div class="related"><span class="k">Notebook entries for this project</span><a href="../../notebook/circuit-simulator-from-scratch/"><span class="t">Writing a circuit simulator from scratch</span><span class="k2">Entry 001 →</span></a></div>
+</article>
+</div>
+<nav class="pager" aria-label="More projects">
+<a href="../../projects/"><span class="k">← All projects</span><span class="t">Projects</span></a>
+<a class="next" href="../../projects/sic-inverter-800/"><span class="k">Next project →</span><span class="t">SiC Inverter 800</span></a>
+</nav>
+</div>
+</main>
+<footer class="site-footer">
+<div class="wrap">
+<div class="who"><strong>Radhe Patel</strong><span>Purdue University, West Lafayette, IN</span></div>
+<ul>
+<li><a href="https://github.com/radhepa">GitHub</a></li>
+<li><a href="mailto:pate3212@purdue.edu">Email</a></li>
+<li><a href="https://www.linkedin.com/in/radhe--patel">LinkedIn</a></li>
+<li><a href="../../feed.xml">RSS</a></li>
+</ul>
+</div>
+</footer>
+<script src="../../assets/js/site.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,380 @@
+[
+  {
+    "slug": "sic-inverter-800",
+    "title": "SiC Inverter 800",
+    "category": "hw",
+    "status": "built",
+    "area": "Power electronics",
+    "description": "Power stage and gate driver for one switch of an 800 V electric-vehicle traction inverter, designed in simulation.",
+    "repo": "https://github.com/radhepa/sic-inverter-800v",
+    "home": "featured",
+    "cardArt": "inverter",
+    "cardImage": "",
+    "hasCaseStudy": true,
+    "summary": "A simulation-driven design of one switch of an 800 V EV traction inverter, built up from datasheets with free tools: Python, ngspice and KiCad. Every value in the final schematic comes from a simulation sweep.",
+    "specs": [
+      {
+        "label": "DC link",
+        "value": "800 V nominal (550–850 V)"
+      },
+      {
+        "label": "Power",
+        "value": "150 kW peak (10 s), 75 kW continuous"
+      },
+      {
+        "label": "Switches",
+        "value": "5 × Wolfspeed C3M0021120K per switch"
+      },
+      {
+        "label": "Gate driver",
+        "value": "TI UCC21750-Q1, +15 / −4 V, Miller clamp"
+      },
+      {
+        "label": "Switching",
+        "value": "20 kHz cruising, 10 kHz at peak torque"
+      },
+      {
+        "label": "Efficiency",
+        "value": "99.47 % at 75 kW (402 W loss)"
+      },
+      {
+        "label": "Tools",
+        "value": "Python, ngspice, KiCad"
+      }
+    ],
+    "heroImage": "assets/figures/sic-inverter-800/02_dpt_validation.png",
+    "heroAlt": "Simulated double-pulse switching energies plotted against datasheet values",
+    "heroCaption": "Fig. 1 · Double-pulse simulation vs the datasheet, on 13 points the model was never fitted to.",
+    "sections": [
+      {
+        "title": "Overview",
+        "body": "A traction inverter turns the battery's DC into three-phase AC for the motor. Each phase is a half-bridge: a high-side and a low-side switch that alternately connect the motor terminal to the + or − rail tens of thousands of times a second. This project designs **one switch position**; the inverter has six identical ones.\n\nWhy 800 V and silicon carbide? For the same power, doubling the voltage halves the current, so cables and motor windings carry a quarter of the I²R loss. But 800 V needs 1200 V-rated switches. Silicon IGBTs at 1200 V switch slowly and have a fixed knee voltage; SiC MOSFETs switch about 10× faster and behave like a plain resistor when on. The project puts numbers on how much that matters.\n\n| Requirement | Value | Why |\n| --- | --- | --- |\n| Peak phase current | 300 A<sub>rms</sub> (10 s) | peak motor torque |\n| Continuous current | 160 A<sub>rms</sub> | about 75 kW continuous |\n| Coolant | 65 °C water-glycol | typical EV cooling loop |\n| Junction temperature | ≤ 150 °C | 25 °C margin to the 175 °C maximum |\n| Peak V<sub>DS</sub> | ≤ 1100 V at the worst corner | margin to the 1200 V rating |\n| Turn-on dv/dt | ≤ 50 V/ns | motor insulation and EMI |"
+      },
+      {
+        "title": "Architecture",
+        "body": "The design was done in the order below. Each step feeds the next: the device model sets up the switching bench, the bench produces an energy table, and the energy table drives the loss, thermal and drive-cycle models.\n\n1. Fit a SPICE model of the SiC MOSFET to the datasheet curves\n2. Calibrate a double-pulse test bench, validate on 13 unseen points\n3. Design studies: gate resistors, layout, crosstalk, paralleling, short circuit\n4. Electro-thermal loss model and device count, SiC vs IGBT\n5. EPA drive cycles (UDDS, HWFET)\n6. Worst-case corners and a 5,000-build Monte Carlo\n7. KiCad schematic of the gate driver and five paralleled MOSFETs\n\nThe device model is an equivalent circuit: a square-law channel, a drift resistance that rises with temperature (R ∝ T<sup>2.34</sup>), voltage-dependent capacitances, and a PiN body diode. It matches R<sub>DS(on)</sub> within 2 % from 25 to 175 °C and the total gate charge exactly (162 nC).\n\n![Fitted MOSFET model curves overlaid on datasheet curves](/assets/figures/sic-inverter-800/01_device_fit.png \"Fig. 3 · Device model vs datasheet: output, transfer, capacitance and diode curves.\")"
+      },
+      {
+        "title": "Design decisions",
+        "body": "Every value comes from a simulation sweep, not a rule of thumb.\n\n| Question | Decision |\n| --- | --- |\n| How many MOSFETs per switch? | Four per switch reach 182 °C at peak current; five reach 134 °C. **Five.** |\n| Gate resistors? | A small turn-off resistor is fast and low-loss but overshoots past 1100 V; turn-on speed is capped by the 50 V/ns dv/dt budget. **6.8 Ω on, 4.7 Ω off.** |\n| Add a gate-driver booster? | When dv/dt limits turn-on speed, a stronger driver cannot help: the booster version lost (4.7 vs 3.9 mJ per device). **UCC21750-Q1 alone.** |\n| Layout inductance? | With only an 8 nH busbar, staying under the overshoot limit needed a 22 Ω turn-off resistor and about 3× the loss. Local high-frequency capacitors fix it if their loop is ≤ 2.5 nH. **1 µF HF caps, 2 nH loop.** |\n| Negative gate voltage? | With 0 V off-bias the idle device's gate is kicked to +2.9 V, above its 2.0 V hot threshold: a false turn-on. −4 V plus a Miller clamp holds it at −3.4 V. **−4 V + Miller clamp.** |\n| DESAT blanking capacitor? | 22 pF cleared a short circuit in 2.24 µs worst case; 10 pF in 1.97 µs, inside SiC's ~2 µs withstand time. **10 pF.** |\n| Switching frequency at peak torque? | At 20 kHz, 24 % of Monte Carlo builds exceed 150 °C; at 10 kHz, 1.6 %. **20 kHz cruising, 10 kHz at peak torque.** |\n\n![Simulated gate voltage of the idle device during the other device switching, with and without negative bias](/assets/figures/sic-inverter-800/03d_crosstalk.png \"Fig. 4 · Crosstalk: why the gate needs −4 V and a Miller clamp.\")"
+      },
+      {
+        "title": "Testing",
+        "body": "The model is checked against data it never saw. The double-pulse bench was calibrated at one operating point and then compared with the datasheet's switching energies on 13 others.\n\n| Check | Result |\n| --- | --- |\n| Switching energy vs current (10–80 A) | mean error 3.6 %, worst 5.7 % |\n| Switching energy vs temperature (75–125 °C) | mean error 1.8 % |\n| Fitted thresholds (never used in the fit) | 2.53 V / 1.98 V vs datasheet 2.5 V / 2.0 V |\n| Worst-case turn-off overshoot | 1101 V at 850 V bus, +25 % loop inductance, −40 °C |\n| Short circuit | DESAT trips in 0.72 µs typical, fault cleared in 1.97 µs worst case |\n| Loss at 75 kW | SiC 402 W (99.47 %) vs Si IGBT 720 W (99.05 %) |\n| EPA city cycle (UDDS) | inverter energy loss −58 % vs IGBT at the same 10 kHz |\n\n![Monte Carlo junction temperature distributions at 20 kHz and 10 kHz](/assets/figures/sic-inverter-800/07_worst_case.png \"Fig. 5 · Worst case and 5,000-build Monte Carlo at peak torque.\")\n\n![Bar chart of inverter energy loss for SiC and IGBT over EPA drive cycles](/assets/figures/sic-inverter-800/05b_cycle_summary.png \"Fig. 6 · SiC vs IGBT over the EPA city and highway cycles.\")"
+      },
+      {
+        "title": "What I'd change",
+        "body": "- The model is calibrated to datasheet measurements, not my own bench data. A double-pulse test on real hardware is the next step.\n- Switching delay times come out 30–50 % longer than the datasheet's even though the energies match, and the model under-predicts the effect of very large gate resistors (up to 24 % at 20 Ω).\n- The short-circuit simulation is isothermal, so its fault current is an upper bound.\n- There is no PCB layout yet. The 2.5 nH loop-inductance budget is the requirement the layout must meet."
+      }
+    ]
+  },
+  {
+    "slug": "li-ion-bms",
+    "title": "Li-ion BMS",
+    "category": "hw",
+    "status": "built",
+    "area": "Energy storage",
+    "description": "Battery management system for a 4-cell lithium-ion pack, built on real lab data and written as embedded C.",
+    "repo": "https://github.com/radhepa/li-ion-bms",
+    "home": "featured",
+    "cardArt": "battery",
+    "cardImage": "",
+    "hasCaseStudy": true,
+    "summary": "A battery management system for a 4-cell (16.8 V) pack of LG HG2 18650 cells: a cell model fitted to lab data, a Kalman-filter state-of-charge estimator, protection and balancing firmware in C, and an analog front-end schematic.",
+    "specs": [
+      {
+        "label": "Pack",
+        "value": "4S LG HG2 18650, 16.8 V"
+      },
+      {
+        "label": "Front end",
+        "value": "TI BQ76920"
+      },
+      {
+        "label": "Cell model",
+        "value": "2-RC equivalent circuit"
+      },
+      {
+        "label": "SOC",
+        "value": "Extended Kalman Filter, 0.96–1.78 % RMSE"
+      },
+      {
+        "label": "Firmware",
+        "value": "C99, 24 unit tests, SIL tests"
+      },
+      {
+        "label": "Balancing",
+        "value": "Passive, 45 mA"
+      },
+      {
+        "label": "Tools",
+        "value": "Python, C, KiCad"
+      }
+    ],
+    "heroImage": "assets/figures/li-ion-bms/04_soc_udds.png",
+    "heroAlt": "State of charge over a UDDS drive cycle: EKF estimate, Coulomb counting and true value",
+    "heroCaption": "Fig. 1 · EKF vs Coulomb counting on a real UDDS drive-cycle test. The EKF starts 50 % wrong and still converges.",
+    "sections": [
+      {
+        "title": "Overview",
+        "body": "A BMS has to answer two questions all the time: is the pack safe, and how much charge is left? Neither can be measured directly. Safety needs fast, reliable trips on voltage, current and temperature. State of charge (SOC) has to be estimated from voltage and current, and the obvious method, adding up current over time (Coulomb counting), drifts whenever the current sensor has an offset.\n\nThe project is built on public lab data for the LG HG2 cell from McMaster University (P. Kollmeyer, CC BY 4.0): a slow C/20 test for the open-circuit voltage curve, an HPPC pulse test for model parameters, and four EPA drive cycles for validation, all at 25 °C."
+      },
+      {
+        "title": "Architecture",
+        "body": "1. Lab tests: C/20 charge and discharge, HPPC pulses\n2. Open-circuit voltage curve and 2-RC parameters vs SOC\n3. Validate the cell model on 4 drive cycles it was not fitted to\n4. Extended Kalman Filter for state of charge\n5. C firmware with tables generated from the Python model\n6. Software-in-the-loop tests on recorded data and injected faults\n\n**Cell model.** v = OCV(SOC) − R0·i − V1 − V2, where V1 and V2 are two RC voltages with time constants around 1 s and 30–60 s, for charge transfer and diffusion. Every parameter is a table vs SOC.\n\n**EKF.** It runs the model forward with the measured current (predict), then compares the model's voltage with the measured one and corrects SOC by the Kalman gain (update). The voltage pulls back the drift that a current-sensor offset causes in Coulomb counting.\n\n| Firmware module | Does |\n| --- | --- |\n| `protection.c` | over/under-voltage, over-current, short circuit, over/under-temperature; each with debounce and hysteresis |\n| `soc_ekf.c` | the EKF in single precision, tables generated from the Python model |\n| `balancing.c` | bleeds cells more than 10 mV above the lowest, only while charging or resting |\n| `bms.c` | one `bms_step()` per sample: protection, FET commands, SOC per cell, balancing mask |"
+      },
+      {
+        "title": "Design decisions",
+        "body": "| Question | Decision |\n| --- | --- |\n| Which OCV curve? | The resting voltage after **discharge**, not the average of charge and discharge. A drive cycle sits on the discharge side of the hysteresis loop. This choice halved the drive-cycle error. |\n| What to do below 20 % SOC? | The 2-RC fits ran into their parameter bounds there, so those fits are dropped and the last good values are held. |\n| How much to trust the voltage? | Mid-SOC, 1 % of SOC moves the voltage only 6–10 mV, so the filter's noise settings have to keep it from over-correcting on the flat part of the curve. |\n| How should protection trip? | Every fault has a debounce, so one noisy sample cannot trip it, and hysteresis or a retry timer, so it cannot chatter. |\n| Balancing rules? | Bleed only while charging or resting, and never two neighbouring cells at once (a BQ76920 rule). |\n| Current shunt? | 1 mΩ: 22 A over-current and 67 A short-circuit thresholds, 8.4 mA resolution. |"
+      },
+      {
+        "title": "Testing",
+        "body": "| Check | Result |\n| --- | --- |\n| Cell model on 4 unseen drive cycles | voltage RMSE 14.5 / 16.1 / 23.7 / 20.4 mV (UDDS / LA92 / US06 / mixed) |\n| EKF, starts 50 % wrong + 50 mA sensor offset | SOC RMSE 1.78 / 1.01 / 0.96 / 1.11 % |\n| Coulomb counting with a perfect start | 4.69 / 3.04 / 1.29 / 2.40 %, drifting up to −8 % |\n| Passive balancing, 4 mismatched cells | SOC spread 12.8 % → 4.4 % in 8 cycles, +3.7 % usable capacity |\n| C firmware vs Python reference | max difference 0.0067 % SOC |\n| Fault injection (software in the loop) | 6 / 6 trip and recovery timings match the requirements |\n| Unit tests | 24 / 24, zero warnings with `-Wall -Wextra -pedantic` |\n\n![Software-in-the-loop test traces showing fault injection, trips and recovery](/assets/figures/li-ion-bms/07_sil_faults.png \"Fig. 3 · Software-in-the-loop: injected faults, trips and recoveries.\")\n\n![Cell state of charge spread shrinking over charge cycles with passive balancing](/assets/figures/li-ion-bms/06_balancing.png \"Fig. 4 · Passive balancing over 8 cycles.\")"
+      },
+      {
+        "title": "What I'd change",
+        "body": "- Everything is at 25 °C. A production model needs parameter tables vs temperature; the dataset includes −20 to 40 °C tests.\n- The drive cycles were run on a different cell than the HPPC test (same model), so part of the remaining error is cell-to-cell difference.\n- The BQ76920's own hardware protection is the faster, independent safety layer. Configuring it over I²C is not written yet.\n- In city driving, regen pulses up to 5.3 A exceed the 4.5 A charge limit and would open the charge FET. A vehicle must cap regen torque at the BMS limit."
+      }
+    ]
+  },
+  {
+    "slug": "tiny-spice",
+    "title": "Tiny SPICE",
+    "category": "hw",
+    "status": "built",
+    "area": "Circuit simulation",
+    "description": "A SPICE-style circuit simulator written from scratch in C, validated against ngspice.",
+    "repo": "https://github.com/radhepa/tinyspice",
+    "home": "featured",
+    "cardArt": "spice",
+    "cardImage": "",
+    "hasCaseStudy": true,
+    "summary": "A SPICE-style circuit simulator in about 1,250 lines of C with no dependencies. It reads a standard netlist, builds the circuit equations with Modified Nodal Analysis, solves nonlinear devices with Newton-Raphson, and steps through time with the trapezoidal rule.",
+    "specs": [
+      {
+        "label": "Language",
+        "value": "C, ~1,250 lines, no dependencies"
+      },
+      {
+        "label": "Equations",
+        "value": "Modified Nodal Analysis"
+      },
+      {
+        "label": "Nonlinear",
+        "value": "Newton-Raphson, junction limiting"
+      },
+      {
+        "label": "Integration",
+        "value": "Trapezoidal rule"
+      },
+      {
+        "label": "Solver",
+        "value": "Dense LU, partial pivoting"
+      },
+      {
+        "label": "Elements",
+        "value": "R C L V I D S E"
+      },
+      {
+        "label": "Tests",
+        "value": "36 / 36 unit tests"
+      }
+    ],
+    "heroImage": "assets/figures/tiny-spice/validation.png",
+    "heroAlt": "tinyspice waveforms overlaid on exact solutions and ngspice results for four test circuits",
+    "heroCaption": "Fig. 1 · tinyspice vs exact solutions and ngspice: RC, RLC, rectifier and buck converter.",
+    "sections": [
+      {
+        "title": "Overview",
+        "body": "Circuit simulators like SPICE, LTspice and ngspice are used every day in electrical engineering, but they are easy to treat as a black box. I wrote one from scratch to understand the core ideas: how a circuit becomes a matrix, how a diode's exponential gets solved, and how capacitors and inductors are stepped through time.\n\nIt supports resistors, capacitors, inductors, voltage and current sources (dc, pulse, sin, pwl), diodes, switches and voltage-controlled sources, plus `.model` and `.tran`, and the usual SPICE unit suffixes."
+      },
+      {
+        "title": "Architecture",
+        "body": "1. Parse the netlist (netlist.c)\n2. DC operating point: Newton with gmin stepping\n3. Stamp every element into A x = b\n4. LU solve (solver.c)\n5. Converged? If not, re-linearize; after 100 tries, halve the step\n6. Save capacitor and inductor state, write a CSV row\n\n**Modified Nodal Analysis.** Kirchhoff's current law at every node gives one equation per node. Voltage sources and inductors add one extra unknown each, their current. The result is a square linear system A x = b, and each element \"stamps\" a few numbers into A and b.\n\n**Companion models.** For a capacitor, i = C dv/dt. Integrating over one step with the trapezoid area rule turns the capacitor into a conductance 2C/h plus a current source that remembers the past, so at every time point the circuit is purely resistive."
+      },
+      {
+        "title": "Design decisions",
+        "body": "| Question | Decision |\n| --- | --- |\n| Why the trapezoidal rule? | Halving the time step cuts the error 4× with the trapezoid rule but only 2× with backward Euler. Measured on a real circuit, the slopes are **1.92** and **0.98** (theory: 2 and 1). |\n| What about sharp corners? | The trapezoidal rule \"rings\" at discontinuities, so one backward-Euler step is taken right after each source corner, as SPICE does. |\n| Hitting the corners exactly? | Breakpoints: the time stepper lands exactly on every corner of the PULSE and PWL sources. |\n| Keeping Newton stable? | SPICE-style junction-voltage limiting stops the diode equation from jumping into exponential overflow. |\n| If Newton fails? | The step is retried at half the size. If the DC operating point fails, gmin stepping starts with large conductances to ground and removes them gradually. |"
+      },
+      {
+        "title": "Testing",
+        "body": "| Test | Reference | Result |\n| --- | --- | --- |\n| RC step response | exact solution | max error 4.9 × 10⁻⁵ V |\n| Series RLC step (ζ = 0.1) | exact solution | overshoot 90.49 % vs 90.54 % theory |\n| Half-wave diode rectifier | ngspice 47 | 0.004 % RMS difference |\n| 48 V → 12 V buck converter | ngspice 47 | 0.009 % RMS difference, V<sub>out</sub> 11.340 V vs 11.340 V |\n| Order of accuracy | theory 2 and 1 | measured 1.92 and 0.98 |\n| Unit tests |   | 36 / 36 passing |\n\n![Log-log plot of error vs time step for trapezoidal and backward Euler integration](/assets/figures/tiny-spice/order_of_accuracy.png \"Fig. 3 · Error vs time step: the trapezoid rule is second order, Euler first order.\")"
+      },
+      {
+        "title": "What I'd change",
+        "body": "- The matrix is dense, so solving is O(n³). That is fine for hundreds of nodes; thousands would need a sparse LU.\n- The step size is fixed, with halving on failure. Real SPICE also adapts the step from a local truncation-error estimate.\n- Next: a MOSFET model, AC small-signal analysis, and the sparse solver."
+      }
+    ]
+  },
+  {
+    "slug": "motorized-bike",
+    "title": "Motorized bike",
+    "category": "hw",
+    "status": "progress",
+    "area": "Mechanical",
+    "description": "Putting an engine on a bicycle with friends.",
+    "repo": "",
+    "home": "none",
+    "cardArt": "none",
+    "cardImage": "",
+    "hasCaseStudy": false,
+    "summary": "",
+    "specs": [],
+    "heroImage": "",
+    "heroAlt": "",
+    "heroCaption": "",
+    "sections": []
+  },
+  {
+    "slug": "lunabotics",
+    "title": "Lunabotics mining robot",
+    "category": "tm",
+    "status": "progress",
+    "area": "PCB design",
+    "description": "PCB design for Purdue Lunabotics’ autonomous lunar mining robot.",
+    "repo": "",
+    "home": "none",
+    "cardArt": "none",
+    "cardImage": "",
+    "hasCaseStudy": false,
+    "summary": "",
+    "specs": [],
+    "heroImage": "",
+    "heroAlt": "",
+    "heroCaption": "",
+    "sections": []
+  },
+  {
+    "slug": "assistive-writing",
+    "title": "Assistive writing device",
+    "category": "tm",
+    "status": "progress",
+    "area": "Assistive tech",
+    "description": "EPICS team device that guides a child’s hand to build writing muscle memory. I prototype pencil grips in Fusion 360 and build the SQL database.",
+    "repo": "",
+    "home": "none",
+    "cardArt": "none",
+    "cardImage": "",
+    "hasCaseStudy": false,
+    "summary": "",
+    "specs": [],
+    "heroImage": "",
+    "heroAlt": "",
+    "heroCaption": "",
+    "sections": []
+  },
+  {
+    "slug": "monkey-minor",
+    "title": "Monkey Minor",
+    "category": "sw",
+    "status": "progress",
+    "area": "C++ · PyTorch",
+    "description": "Chess engine in C++ with neural nets trained on self-play in PyTorch.",
+    "repo": "https://github.com/radhepa/Monkey-Minor-Chess-Engine",
+    "home": "list",
+    "cardArt": "none",
+    "cardImage": "",
+    "hasCaseStudy": false,
+    "summary": "",
+    "specs": [],
+    "heroImage": "",
+    "heroAlt": "",
+    "heroCaption": "",
+    "sections": []
+  },
+  {
+    "slug": "connectome-ping-pong",
+    "title": "Connectome ping-pong",
+    "category": "sw",
+    "status": "progress",
+    "area": "Neural networks",
+    "description": "Network wired from the fruit fly connectome, trained to play table tennis and compared to a random graph.",
+    "repo": "",
+    "home": "list",
+    "cardArt": "none",
+    "cardImage": "",
+    "hasCaseStudy": false,
+    "summary": "",
+    "specs": [],
+    "heroImage": "",
+    "heroAlt": "",
+    "heroCaption": "",
+    "sections": []
+  },
+  {
+    "slug": "catching-days",
+    "title": "Catching Days",
+    "category": "sw",
+    "status": "built",
+    "area": "Web app",
+    "description": "Productivity web app: focus timer, journal, task and exam trackers, and a calendar-aware day planner.",
+    "repo": "https://github.com/radhepa/Catching-Days",
+    "home": "none",
+    "cardArt": "none",
+    "cardImage": "",
+    "hasCaseStudy": false,
+    "summary": "",
+    "specs": [],
+    "heroImage": "",
+    "heroAlt": "",
+    "heroCaption": "",
+    "sections": []
+  },
+  {
+    "slug": "katha",
+    "title": "Katha",
+    "category": "sw",
+    "status": "progress",
+    "area": "Mobile app",
+    "description": "React Native reader for Hindu scripture: the Bhagavad Gita, Ramayana and Mahabharata.",
+    "repo": "https://github.com/radhepa/Katha",
+    "home": "none",
+    "cardArt": "none",
+    "cardImage": "",
+    "hasCaseStudy": false,
+    "summary": "",
+    "specs": [],
+    "heroImage": "",
+    "heroAlt": "",
+    "heroCaption": "",
+    "sections": []
+  },
+  {
+    "slug": "studymon",
+    "title": "StudyMon",
+    "category": "gm",
+    "status": "progress",
+    "area": "Game · study tool",
+    "description": "Study RPG where battles are Calc II and C questions, with in-browser C compilation and grading. 850 C questions across 15 chapters.",
+    "repo": "https://github.com/radhepa/StudyMon",
+    "home": "list",
+    "cardArt": "none",
+    "cardImage": "",
+    "hasCaseStudy": false,
+    "summary": "",
+    "specs": [],
+    "heroImage": "",
+    "heroAlt": "",
+    "heroCaption": "",
+    "sections": []
+  },
+  {
+    "slug": "spanishdict-to-anki",
+    "title": "SpanishDict to Anki",
+    "category": "gm",
+    "status": "built",
+    "area": "Browser extension",
+    "description": "Chrome extension that turns SpanishDict lookups into Anki flashcards.",
+    "repo": "https://github.com/radhepa/SpanishDictToAnki",
+    "home": "none",
+    "cardArt": "none",
+    "cardImage": "",
+    "hasCaseStudy": false,
+    "summary": "",
+    "specs": [],
+    "heroImage": "",
+    "heroAlt": "",
+    "heroCaption": "",
+    "sections": []
+  }
+]

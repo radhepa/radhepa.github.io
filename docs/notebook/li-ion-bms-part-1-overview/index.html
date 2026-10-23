@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Li-ion BMS, part 1: design overview · Radhe Patel</title>
+<meta name="description" content="A battery management system for a 4-cell pack, from public lab data to C firmware: what each piece does and how they connect.">
+<meta name="author" content="Radhe Patel">
+<meta name="theme-color" content="#F5F5F0">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Li-ion BMS, part 1: design overview · Radhe Patel">
+<meta property="og:description" content="A battery management system for a 4-cell pack, from public lab data to C firmware: what each piece does and how they connect.">
+
+
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../../assets/img/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="Radhe Patel · Lab notebook" href="../../feed.xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;1,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="../../assets/css/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+<nav class="site-nav" aria-label="Primary"><ul><li><a href="../../">Home</a></li><li><a href="../../projects/">Projects</a></li><li><a href="../../notebook/" aria-current="page">Lab notebook</a></li><li><a href="../../awards/">Awards</a></li><li><a href="../../courses/">Courses</a></li><li><a href="../../about/">About</a></li><li><a class="nav-resume" href="../../assets/resume.pdf">Résumé</a></li></ul></nav>
+</header>
+<main id="main">
+<div class="wrap page page-narrow-top">
+<a class="back" href="../../notebook/">← Lab notebook</a>
+<div class="reading">
+<aside>
+<div class="meta-row"><span class="k">Entry</span><span>003</span></div>
+<div class="meta-row"><span class="k">Project</span><a href="../../projects/li-ion-bms/">Li-ion BMS</a></div>
+<div class="meta-row"><span class="k">Published</span><time datetime="2026-10-08">Oct 8, 2026</time></div>
+<div class="meta-row"><span class="k">Reading time</span><span>2 min</span></div>
+<div class="meta-row"><span class="k">Tags</span><div class="pills"><span>batteries</span><span>Kalman filter</span><span>firmware</span></div></div>
+</aside>
+<article class="prose">
+<h1>Li-ion BMS, part 1: design overview</h1>
+<p class="summary">A battery management system for a 4-cell pack, from public lab data to C firmware: what each piece does and how they connect.</p>
+<h2>Goal</h2>
+<p>Build the brain of a small battery pack: four LG HG2 18650 cells in series (16.8 V). It has to keep the pack safe, estimate how much charge is left, and keep the cells balanced, and I wanted every number to be checked against real measurements rather than made up.</p>
+<h2>How it works</h2>
+<p>The project starts from public lab data for this exact cell (McMaster University, CC BY 4.0) and moves toward firmware in five steps:</p>
+<ol><li><strong>Cell model.</strong> A slow C/20 test gives the open-circuit voltage curve. A pulse test (HPPC) gives a resistance and two RC pairs at each state of charge. Together they predict the cell's voltage for any current.</li><li><strong>Validation.</strong> The model is run on four EPA drive cycles it was never fitted to. Voltage error: 14.5 to 23.7 mV RMS.</li><li><strong>State of charge.</strong> An Extended Kalman Filter runs the model alongside the real cell and uses the voltage difference to correct its SOC estimate.</li><li><strong>Firmware.</strong> Protection, the EKF and balancing in hardware-independent C99, with the model tables generated straight from the Python code.</li><li><strong>Testing.</strong> Unit tests, then software-in-the-loop runs on recorded lab data with faults injected.</li></ol>
+<figure><img src="../../assets/figures/li-ion-bms/04_soc_udds.png" alt="State of charge on a UDDS drive cycle: EKF, Coulomb counting and true value" loading="lazy"><figcaption>Fig. 1 · Starting 50 % wrong with a 50 mA sensor offset, the EKF converges within seconds; Coulomb counting with a perfect start still drifts.</figcaption></figure>
+<h2>What went wrong</h2>
+<p>Two things in the cell model needed fixing after validation:</p>
+<ul><li>Below about 20 % SOC, the RC fits ran into their parameter limits and gave nonsense. Those fits are dropped and the last good values are held.</li><li>I first used the average of the charge and discharge OCV curves. A drive cycle mostly discharges, so it sits on the discharge side of the hysteresis loop. Switching to the discharge-side curve halved the drive-cycle error.</li></ul>
+<p>Testing also found a system-level problem: in city driving, regenerative braking pulses reach 5.3 A, above the cell's 4.5 A charge limit, so the firmware would open the charge FET. That isn't a firmware bug; the vehicle has to cap regen at the BMS limit, and I wrote it down as a requirement.</p>
+<div class="note"><p><strong>Note:</strong> Mid-SOC, a 1 % change in charge moves the cell voltage only 6–10 mV. That is why a Kalman filter beats simple voltage lookup: it has to weigh a small, noisy voltage signal against current integration.</p></div>
+<h2>Next</h2>
+<p>A closer look at the EKF and how it was tuned, then temperature-dependent parameters. The full project is in the <a href="../../projects/li-ion-bms/">case study</a>.</p>
+<nav class="pager" aria-label="More entries">
+<a href="../../notebook/sic-inverter-part-1-device-model/"><span class="k">← Entry 002</span><span class="t">SiC Inverter 800, part 1: a MOSFET model from the datasheet</span></a>
+<a class="next" href="../../notebook/"><span class="k">All entries →</span><span class="t">Lab notebook</span></a>
+</nav>
+</article>
+</div>
+</div>
+</main>
+<footer class="site-footer">
+<div class="wrap">
+<div class="who"><strong>Radhe Patel</strong><span>Purdue University, West Lafayette, IN</span></div>
+<ul>
+<li><a href="https://github.com/radhepa">GitHub</a></li>
+<li><a href="mailto:pate3212@purdue.edu">Email</a></li>
+<li><a href="https://www.linkedin.com/in/radhe--patel">LinkedIn</a></li>
+<li><a href="../../feed.xml">RSS</a></li>
+</ul>
+</div>
+</footer>
+<script src="../../assets/js/site.js" defer></script>
+</body>
+</html>

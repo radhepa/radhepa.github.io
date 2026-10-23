@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SiC Inverter 800, part 1: a MOSFET model from the datasheet · Radhe Patel</title>
+<meta name="description" content="Before any design decision, I needed a simulation model of the silicon-carbide MOSFET that reproduces its datasheet. Here is how I built and checked it.">
+<meta name="author" content="Radhe Patel">
+<meta name="theme-color" content="#F5F5F0">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="SiC Inverter 800, part 1: a MOSFET model from the datasheet · Radhe Patel">
+<meta property="og:description" content="Before any design decision, I needed a simulation model of the silicon-carbide MOSFET that reproduces its datasheet. Here is how I built and checked it.">
+
+
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../../assets/img/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="Radhe Patel · Lab notebook" href="../../feed.xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;1,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="../../assets/css/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+<nav class="site-nav" aria-label="Primary"><ul><li><a href="../../">Home</a></li><li><a href="../../projects/">Projects</a></li><li><a href="../../notebook/" aria-current="page">Lab notebook</a></li><li><a href="../../awards/">Awards</a></li><li><a href="../../courses/">Courses</a></li><li><a href="../../about/">About</a></li><li><a class="nav-resume" href="../../assets/resume.pdf">Résumé</a></li></ul></nav>
+</header>
+<main id="main">
+<div class="wrap page page-narrow-top">
+<a class="back" href="../../notebook/">← Lab notebook</a>
+<div class="reading">
+<aside>
+<div class="meta-row"><span class="k">Entry</span><span>002</span></div>
+<div class="meta-row"><span class="k">Project</span><a href="../../projects/sic-inverter-800/">SiC Inverter 800</a></div>
+<div class="meta-row"><span class="k">Published</span><time datetime="2026-10-08">Oct 8, 2026</time></div>
+<div class="meta-row"><span class="k">Reading time</span><span>2 min</span></div>
+<div class="meta-row"><span class="k">Tags</span><div class="pills"><span>power electronics</span><span>SPICE</span><span>SiC</span></div></div>
+</aside>
+<article class="prose">
+<h1>SiC Inverter 800, part 1: a MOSFET model from the datasheet</h1>
+<p class="summary">Before any design decision, I needed a simulation model of the silicon-carbide MOSFET that reproduces its datasheet. Here is how I built and checked it.</p>
+<h2>Goal</h2>
+<p>The project is one switch of an 800 V electric-vehicle traction inverter. Every later choice (gate resistors, how many devices in parallel, switching frequency) depends on simulated switching losses, and those are only as good as the transistor model. Manufacturers publish curves, not equations, so the first job was a SPICE model of the Wolfspeed C3M0021120K (1200 V, 21 mΩ) that matches its datasheet.</p>
+<h2>How it works</h2>
+<p>The model is an equivalent circuit, and each piece is fitted to a different datasheet figure:</p>
+<ul><li><strong>Channel current</strong>: a square-law MOSFET with a smooth turn-on, fitted to the transfer curve.</li><li><strong>Drift resistance</strong> that grows with temperature, R ∝ T<sup>2.34</sup>, because electron mobility in SiC falls as it heats up. Fitted to R<sub>DS(on)</sub> vs temperature.</li><li><strong>Capacitances</strong> C<sub>gs</sub>, C<sub>gd</sub>(V) and C<sub>ds</sub>(V), fitted to the capacitance curves, the output-capacitance energy and the gate-charge curve.</li><li><strong>Body diode</strong>: a PiN diode with a ~3 V knee, fitted to the V<sub>SD</sub> curves and reverse-recovery charge.</li></ul>
+<p>Then a <strong>double-pulse test</strong>, the standard way industry measures switching loss, was built around it in ngspice. Five unknowns about the datasheet's test fixture (driver resistance, edge time, loop inductance, inductor capacitance, diode lifetime) were fitted at a single operating point.</p>
+<figure><img src="../../assets/figures/sic-inverter-800/01_device_fit.png" alt="Fitted MOSFET model curves overlaid on datasheet curves" loading="lazy"><figcaption>Fig. 1 · Model vs datasheet. R<sub>DS(on)</sub> 20.2 / 35.1 mΩ at 25 / 175 °C (datasheet 21 / 36), gate charge 162 nC (162).</figcaption></figure>
+<h2>What went wrong</h2>
+<p>The first model switched about 30 % too fast. Checking its internals showed why: the datasheet's gate-charge curve puts the Miller plateau at 6.3 V (20 A, 800 V), while the transfer curve predicts 5.2 V. I added a threshold shift that grows with V<sub>DS</sub>, fitted to that one point.</p>
+<p>With that fix, the fitted thresholds came out at 2.53 V and 1.98 V. The datasheet specifies 2.5 V and 2.0 V, and those numbers were never used in the fit. That is good independent evidence the model is physically right, not just curve-matched.</p>
+<div class="note"><p><strong>Validation:</strong> On 13 operating points not used in calibration, switching energy error was 3.6 % on average across current and 1.8 % across temperature. The model under-predicts how much a large gate resistor slows switching (up to 24 % at 20 Ω), so the later Monte Carlo adds a 10 % energy uncertainty to cover it.</p></div>
+<h2>Next</h2>
+<p>Using the calibrated bench to pick gate resistors, set a layout-inductance budget, and decide on negative gate bias and a Miller clamp. The full design is in the <a href="../../projects/sic-inverter-800/">case study</a>.</p>
+<nav class="pager" aria-label="More entries">
+<a href="../../notebook/circuit-simulator-from-scratch/"><span class="k">← Entry 001</span><span class="t">Writing a circuit simulator from scratch</span></a>
+<a class="next" href="../../notebook/li-ion-bms-part-1-overview/"><span class="k">Entry 003 →</span><span class="t">Li-ion BMS, part 1: design overview</span></a>
+</nav>
+</article>
+</div>
+</div>
+</main>
+<footer class="site-footer">
+<div class="wrap">
+<div class="who"><strong>Radhe Patel</strong><span>Purdue University, West Lafayette, IN</span></div>
+<ul>
+<li><a href="https://github.com/radhepa">GitHub</a></li>
+<li><a href="mailto:pate3212@purdue.edu">Email</a></li>
+<li><a href="https://www.linkedin.com/in/radhe--patel">LinkedIn</a></li>
+<li><a href="../../feed.xml">RSS</a></li>
+</ul>
+</div>
+</footer>
+<script src="../../assets/js/site.js" defer></script>
+</body>
+</html>

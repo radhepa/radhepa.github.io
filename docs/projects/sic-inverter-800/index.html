@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SiC Inverter 800 · Radhe Patel</title>
+<meta name="description" content="A simulation-driven design of one switch of an 800 V EV traction inverter, built up from datasheets with free tools: Python, ngspice and KiCad. Every value in the final schematic comes from a simulation sweep.">
+<meta name="author" content="Radhe Patel">
+<meta name="theme-color" content="#F5F5F0">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="SiC Inverter 800 · Radhe Patel">
+<meta property="og:description" content="A simulation-driven design of one switch of an 800 V EV traction inverter, built up from datasheets with free tools: Python, ngspice and KiCad. Every value in the final schematic comes from a simulation sweep.">
+
+
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../../assets/img/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="Radhe Patel · Lab notebook" href="../../feed.xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;1,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="../../assets/css/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+<nav class="site-nav" aria-label="Primary"><ul><li><a href="../../">Home</a></li><li><a href="../../projects/" aria-current="page">Projects</a></li><li><a href="../../notebook/">Lab notebook</a></li><li><a href="../../awards/">Awards</a></li><li><a href="../../courses/">Courses</a></li><li><a href="../../about/">About</a></li><li><a class="nav-resume" href="../../assets/resume.pdf">Résumé</a></li></ul></nav>
+</header>
+<main id="main">
+<div class="wrap page page-narrow-top">
+<a class="back" href="../../projects/">← Projects</a>
+<section class="case-top">
+<div>
+<div class="meta"><span>Power electronics</span><span class="tag tag-built">Built</span></div>
+<h1>SiC Inverter 800</h1>
+<p class="lede">A simulation-driven design of one switch of an 800 V EV traction inverter, built up from datasheets with free tools: Python, ngspice and KiCad. Every value in the final schematic comes from a simulation sweep.</p>
+<div class="btns">
+<a class="btn btn-primary" href="https://github.com/radhepa/sic-inverter-800v" rel="noopener">View on GitHub</a>
+<a class="btn" href="../../notebook/sic-inverter-part-1-device-model/">Build log</a>
+</div>
+</div>
+<div class="spec"><div class="spec-head">Specifications</div><dl><div><dt>DC link</dt><dd>800 V nominal (550–850 V)</dd></div><div><dt>Power</dt><dd>150 kW peak (10 s), 75 kW continuous</dd></div><div><dt>Switches</dt><dd>5 × Wolfspeed C3M0021120K per switch</dd></div><div><dt>Gate driver</dt><dd>TI UCC21750-Q1, +15 / −4 V, Miller clamp</dd></div><div><dt>Switching</dt><dd>20 kHz cruising, 10 kHz at peak torque</dd></div><div><dt>Efficiency</dt><dd>99.47 % at 75 kW (402 W loss)</dd></div><div><dt>Tools</dt><dd>Python, ngspice, KiCad</dd></div></dl></div>
+</section>
+<figure class="wide-fig"><img src="../../assets/figures/sic-inverter-800/02_dpt_validation.png" alt="Simulated double-pulse switching energies plotted against datasheet values"><figcaption>Fig. 1 · Double-pulse simulation vs the datasheet, on 13 points the model was never fitted to.</figcaption></figure>
+<div class="reading" style="padding-top: 56px">
+<aside><nav class="toc" aria-label="On this page"><span class="k">On this page</span><a href="#overview"><span>01</span>Overview</a><a href="#architecture"><span>02</span>Architecture</a><a href="#design-decisions"><span>03</span>Design decisions</a><a href="#testing"><span>04</span>Testing</a><a href="#what-i-d-change"><span>05</span>What I'd change</a></nav></aside>
+<article class="prose case">
+<h2 id="overview"><span class="n">01</span>Overview</h2>
+<p>A traction inverter turns the battery's DC into three-phase AC for the motor. Each phase is a half-bridge: a high-side and a low-side switch that alternately connect the motor terminal to the + or − rail tens of thousands of times a second. This project designs <strong>one switch position</strong>; the inverter has six identical ones.</p>
+<p>Why 800 V and silicon carbide? For the same power, doubling the voltage halves the current, so cables and motor windings carry a quarter of the I²R loss. But 800 V needs 1200 V-rated switches. Silicon IGBTs at 1200 V switch slowly and have a fixed knee voltage; SiC MOSFETs switch about 10× faster and behave like a plain resistor when on. The project puts numbers on how much that matters.</p>
+<div class="table-wrap"><table><thead><tr><th scope="col">Requirement</th><th scope="col">Value</th><th scope="col">Why</th></tr></thead><tbody><tr><td>Peak phase current</td><td>300 A<sub>rms</sub> (10 s)</td><td>peak motor torque</td></tr><tr><td>Continuous current</td><td>160 A<sub>rms</sub></td><td>about 75 kW continuous</td></tr><tr><td>Coolant</td><td>65 °C water-glycol</td><td>typical EV cooling loop</td></tr><tr><td>Junction temperature</td><td>≤ 150 °C</td><td>25 °C margin to the 175 °C maximum</td></tr><tr><td>Peak V<sub>DS</sub></td><td>≤ 1100 V at the worst corner</td><td>margin to the 1200 V rating</td></tr><tr><td>Turn-on dv/dt</td><td>≤ 50 V/ns</td><td>motor insulation and EMI</td></tr></tbody></table></div>
+<h2 id="architecture"><span class="n">02</span>Architecture</h2>
+<p>The design was done in the order below. Each step feeds the next: the device model sets up the switching bench, the bench produces an energy table, and the energy table drives the loss, thermal and drive-cycle models.</p>
+<ol><li>Fit a SPICE model of the SiC MOSFET to the datasheet curves</li><li>Calibrate a double-pulse test bench, validate on 13 unseen points</li><li>Design studies: gate resistors, layout, crosstalk, paralleling, short circuit</li><li>Electro-thermal loss model and device count, SiC vs IGBT</li><li>EPA drive cycles (UDDS, HWFET)</li><li>Worst-case corners and a 5,000-build Monte Carlo</li><li>KiCad schematic of the gate driver and five paralleled MOSFETs</li></ol>
+<p>The device model is an equivalent circuit: a square-law channel, a drift resistance that rises with temperature (R ∝ T<sup>2.34</sup>), voltage-dependent capacitances, and a PiN body diode. It matches R<sub>DS(on)</sub> within 2 % from 25 to 175 °C and the total gate charge exactly (162 nC).</p>
+<figure><img src="../../assets/figures/sic-inverter-800/01_device_fit.png" alt="Fitted MOSFET model curves overlaid on datasheet curves" loading="lazy"><figcaption>Fig. 3 · Device model vs datasheet: output, transfer, capacitance and diode curves.</figcaption></figure>
+<h2 id="design-decisions"><span class="n">03</span>Design decisions</h2>
+<p>Every value comes from a simulation sweep, not a rule of thumb.</p>
+<div class="table-wrap"><table><thead><tr><th scope="col">Question</th><th scope="col">Decision</th></tr></thead><tbody><tr><td>How many MOSFETs per switch?</td><td>Four per switch reach 182 °C at peak current; five reach 134 °C. <strong>Five.</strong></td></tr><tr><td>Gate resistors?</td><td>A small turn-off resistor is fast and low-loss but overshoots past 1100 V; turn-on speed is capped by the 50 V/ns dv/dt budget. <strong>6.8 Ω on, 4.7 Ω off.</strong></td></tr><tr><td>Add a gate-driver booster?</td><td>When dv/dt limits turn-on speed, a stronger driver cannot help: the booster version lost (4.7 vs 3.9 mJ per device). <strong>UCC21750-Q1 alone.</strong></td></tr><tr><td>Layout inductance?</td><td>With only an 8 nH busbar, staying under the overshoot limit needed a 22 Ω turn-off resistor and about 3× the loss. Local high-frequency capacitors fix it if their loop is ≤ 2.5 nH. <strong>1 µF HF caps, 2 nH loop.</strong></td></tr><tr><td>Negative gate voltage?</td><td>With 0 V off-bias the idle device's gate is kicked to +2.9 V, above its 2.0 V hot threshold: a false turn-on. −4 V plus a Miller clamp holds it at −3.4 V. <strong>−4 V + Miller clamp.</strong></td></tr><tr><td>DESAT blanking capacitor?</td><td>22 pF cleared a short circuit in 2.24 µs worst case; 10 pF in 1.97 µs, inside SiC's ~2 µs withstand time. <strong>10 pF.</strong></td></tr><tr><td>Switching frequency at peak torque?</td><td>At 20 kHz, 24 % of Monte Carlo builds exceed 150 °C; at 10 kHz, 1.6 %. <strong>20 kHz cruising, 10 kHz at peak torque.</strong></td></tr></tbody></table></div>
+<figure><img src="../../assets/figures/sic-inverter-800/03d_crosstalk.png" alt="Simulated gate voltage of the idle device during the other device switching, with and without negative bias" loading="lazy"><figcaption>Fig. 4 · Crosstalk: why the gate needs −4 V and a Miller clamp.</figcaption></figure>
+<h2 id="testing"><span class="n">04</span>Testing</h2>
+<p>The model is checked against data it never saw. The double-pulse bench was calibrated at one operating point and then compared with the datasheet's switching energies on 13 others.</p>
+<div class="table-wrap"><table><thead><tr><th scope="col">Check</th><th scope="col">Result</th></tr></thead><tbody><tr><td>Switching energy vs current (10–80 A)</td><td>mean error 3.6 %, worst 5.7 %</td></tr><tr><td>Switching energy vs temperature (75–125 °C)</td><td>mean error 1.8 %</td></tr><tr><td>Fitted thresholds (never used in the fit)</td><td>2.53 V / 1.98 V vs datasheet 2.5 V / 2.0 V</td></tr><tr><td>Worst-case turn-off overshoot</td><td>1101 V at 850 V bus, +25 % loop inductance, −40 °C</td></tr><tr><td>Short circuit</td><td>DESAT trips in 0.72 µs typical, fault cleared in 1.97 µs worst case</td></tr><tr><td>Loss at 75 kW</td><td>SiC 402 W (99.47 %) vs Si IGBT 720 W (99.05 %)</td></tr><tr><td>EPA city cycle (UDDS)</td><td>inverter energy loss −58 % vs IGBT at the same 10 kHz</td></tr></tbody></table></div>
+<figure><img src="../../assets/figures/sic-inverter-800/07_worst_case.png" alt="Monte Carlo junction temperature distributions at 20 kHz and 10 kHz" loading="lazy"><figcaption>Fig. 5 · Worst case and 5,000-build Monte Carlo at peak torque.</figcaption></figure>
+<figure><img src="../../assets/figures/sic-inverter-800/05b_cycle_summary.png" alt="Bar chart of inverter energy loss for SiC and IGBT over EPA drive cycles" loading="lazy"><figcaption>Fig. 6 · SiC vs IGBT over the EPA city and highway cycles.</figcaption></figure>
+<h2 id="what-i-d-change"><span class="n">05</span>What I'd change</h2>
+<ul><li>The model is calibrated to datasheet measurements, not my own bench data. A double-pulse test on real hardware is the next step.</li><li>Switching delay times come out 30–50 % longer than the datasheet's even though the energies match, and the model under-predicts the effect of very large gate resistors (up to 24 % at 20 Ω).</li><li>The short-circuit simulation is isothermal, so its fault current is an upper bound.</li><li>There is no PCB layout yet. The 2.5 nH loop-inductance budget is the requirement the layout must meet.</li></ul>
+<div class="related"><span class="k">Notebook entries for this project</span><a href="../../notebook/sic-inverter-part-1-device-model/"><span class="t">SiC Inverter 800, part 1: a MOSFET model from the datasheet</span><span class="k2">Entry 002 →</span></a></div>
+</article>
+</div>
+<nav class="pager" aria-label="More projects">
+<a href="../../projects/"><span class="k">← All projects</span><span class="t">Projects</span></a>
+<a class="next" href="../../projects/li-ion-bms/"><span class="k">Next project →</span><span class="t">Li-ion BMS</span></a>
+</nav>
+</div>
+</main>
+<footer class="site-footer">
+<div class="wrap">
+<div class="who"><strong>Radhe Patel</strong><span>Purdue University, West Lafayette, IN</span></div>
+<ul>
+<li><a href="https://github.com/radhepa">GitHub</a></li>
+<li><a href="mailto:pate3212@purdue.edu">Email</a></li>
+<li><a href="https://www.linkedin.com/in/radhe--patel">LinkedIn</a></li>
+<li><a href="../../feed.xml">RSS</a></li>
+</ul>
+</div>
+</footer>
+<script src="../../assets/js/site.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Li-ion BMS · Radhe Patel</title>
+<meta name="description" content="A battery management system for a 4-cell (16.8 V) pack of LG HG2 18650 cells: a cell model fitted to lab data, a Kalman-filter state-of-charge estimator, protection and balancing firmware in C, and an analog front-end schematic.">
+<meta name="author" content="Radhe Patel">
+<meta name="theme-color" content="#F5F5F0">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Li-ion BMS · Radhe Patel">
+<meta property="og:description" content="A battery management system for a 4-cell (16.8 V) pack of LG HG2 18650 cells: a cell model fitted to lab data, a Kalman-filter state-of-charge estimator, protection and balancing firmware in C, and an analog front-end schematic.">
+
+
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../../assets/img/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="Radhe Patel · Lab notebook" href="../../feed.xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;1,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="../../assets/css/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+<nav class="site-nav" aria-label="Primary"><ul><li><a href="../../">Home</a></li><li><a href="../../projects/" aria-current="page">Projects</a></li><li><a href="../../notebook/">Lab notebook</a></li><li><a href="../../awards/">Awards</a></li><li><a href="../../courses/">Courses</a></li><li><a href="../../about/">About</a></li><li><a class="nav-resume" href="../../assets/resume.pdf">Résumé</a></li></ul></nav>
+</header>
+<main id="main">
+<div class="wrap page page-narrow-top">
+<a class="back" href="../../projects/">← Projects</a>
+<section class="case-top">
+<div>
+<div class="meta"><span>Energy storage</span><span class="tag tag-built">Built</span></div>
+<h1>Li-ion BMS</h1>
+<p class="lede">A battery management system for a 4-cell (16.8 V) pack of LG HG2 18650 cells: a cell model fitted to lab data, a Kalman-filter state-of-charge estimator, protection and balancing firmware in C, and an analog front-end schematic.</p>
+<div class="btns">
+<a class="btn btn-primary" href="https://github.com/radhepa/li-ion-bms" rel="noopener">View on GitHub</a>
+<a class="btn" href="../../notebook/li-ion-bms-part-1-overview/">Build log</a>
+</div>
+</div>
+<div class="spec"><div class="spec-head">Specifications</div><dl><div><dt>Pack</dt><dd>4S LG HG2 18650, 16.8 V</dd></div><div><dt>Front end</dt><dd>TI BQ76920</dd></div><div><dt>Cell model</dt><dd>2-RC equivalent circuit</dd></div><div><dt>SOC</dt><dd>Extended Kalman Filter, 0.96–1.78 % RMSE</dd></div><div><dt>Firmware</dt><dd>C99, 24 unit tests, SIL tests</dd></div><div><dt>Balancing</dt><dd>Passive, 45 mA</dd></div><div><dt>Tools</dt><dd>Python, C, KiCad</dd></div></dl></div>
+</section>
+<figure class="wide-fig"><img src="../../assets/figures/li-ion-bms/04_soc_udds.png" alt="State of charge over a UDDS drive cycle: EKF estimate, Coulomb counting and true value"><figcaption>Fig. 1 · EKF vs Coulomb counting on a real UDDS drive-cycle test. The EKF starts 50 % wrong and still converges.</figcaption></figure>
+<div class="reading" style="padding-top: 56px">
+<aside><nav class="toc" aria-label="On this page"><span class="k">On this page</span><a href="#overview"><span>01</span>Overview</a><a href="#architecture"><span>02</span>Architecture</a><a href="#design-decisions"><span>03</span>Design decisions</a><a href="#testing"><span>04</span>Testing</a><a href="#what-i-d-change"><span>05</span>What I'd change</a></nav></aside>
+<article class="prose case">
+<h2 id="overview"><span class="n">01</span>Overview</h2>
+<p>A BMS has to answer two questions all the time: is the pack safe, and how much charge is left? Neither can be measured directly. Safety needs fast, reliable trips on voltage, current and temperature. State of charge (SOC) has to be estimated from voltage and current, and the obvious method, adding up current over time (Coulomb counting), drifts whenever the current sensor has an offset.</p>
+<p>The project is built on public lab data for the LG HG2 cell from McMaster University (P. Kollmeyer, CC BY 4.0): a slow C/20 test for the open-circuit voltage curve, an HPPC pulse test for model parameters, and four EPA drive cycles for validation, all at 25 °C.</p>
+<h2 id="architecture"><span class="n">02</span>Architecture</h2>
+<ol><li>Lab tests: C/20 charge and discharge, HPPC pulses</li><li>Open-circuit voltage curve and 2-RC parameters vs SOC</li><li>Validate the cell model on 4 drive cycles it was not fitted to</li><li>Extended Kalman Filter for state of charge</li><li>C firmware with tables generated from the Python model</li><li>Software-in-the-loop tests on recorded data and injected faults</li></ol>
+<p><strong>Cell model.</strong> v = OCV(SOC) − R0·i − V1 − V2, where V1 and V2 are two RC voltages with time constants around 1 s and 30–60 s, for charge transfer and diffusion. Every parameter is a table vs SOC.</p>
+<p><strong>EKF.</strong> It runs the model forward with the measured current (predict), then compares the model's voltage with the measured one and corrects SOC by the Kalman gain (update). The voltage pulls back the drift that a current-sensor offset causes in Coulomb counting.</p>
+<div class="table-wrap"><table><thead><tr><th scope="col">Firmware module</th><th scope="col">Does</th></tr></thead><tbody><tr><td><code>protection.c</code></td><td>over/under-voltage, over-current, short circuit, over/under-temperature; each with debounce and hysteresis</td></tr><tr><td><code>soc_ekf.c</code></td><td>the EKF in single precision, tables generated from the Python model</td></tr><tr><td><code>balancing.c</code></td><td>bleeds cells more than 10 mV above the lowest, only while charging or resting</td></tr><tr><td><code>bms.c</code></td><td>one <code>bms_step()</code> per sample: protection, FET commands, SOC per cell, balancing mask</td></tr></tbody></table></div>
+<h2 id="design-decisions"><span class="n">03</span>Design decisions</h2>
+<div class="table-wrap"><table><thead><tr><th scope="col">Question</th><th scope="col">Decision</th></tr></thead><tbody><tr><td>Which OCV curve?</td><td>The resting voltage after <strong>discharge</strong>, not the average of charge and discharge. A drive cycle sits on the discharge side of the hysteresis loop. This choice halved the drive-cycle error.</td></tr><tr><td>What to do below 20 % SOC?</td><td>The 2-RC fits ran into their parameter bounds there, so those fits are dropped and the last good values are held.</td></tr><tr><td>How much to trust the voltage?</td><td>Mid-SOC, 1 % of SOC moves the voltage only 6–10 mV, so the filter's noise settings have to keep it from over-correcting on the flat part of the curve.</td></tr><tr><td>How should protection trip?</td><td>Every fault has a debounce, so one noisy sample cannot trip it, and hysteresis or a retry timer, so it cannot chatter.</td></tr><tr><td>Balancing rules?</td><td>Bleed only while charging or resting, and never two neighbouring cells at once (a BQ76920 rule).</td></tr><tr><td>Current shunt?</td><td>1 mΩ: 22 A over-current and 67 A short-circuit thresholds, 8.4 mA resolution.</td></tr></tbody></table></div>
+<h2 id="testing"><span class="n">04</span>Testing</h2>
+<div class="table-wrap"><table><thead><tr><th scope="col">Check</th><th scope="col">Result</th></tr></thead><tbody><tr><td>Cell model on 4 unseen drive cycles</td><td>voltage RMSE 14.5 / 16.1 / 23.7 / 20.4 mV (UDDS / LA92 / US06 / mixed)</td></tr><tr><td>EKF, starts 50 % wrong + 50 mA sensor offset</td><td>SOC RMSE 1.78 / 1.01 / 0.96 / 1.11 %</td></tr><tr><td>Coulomb counting with a perfect start</td><td>4.69 / 3.04 / 1.29 / 2.40 %, drifting up to −8 %</td></tr><tr><td>Passive balancing, 4 mismatched cells</td><td>SOC spread 12.8 % → 4.4 % in 8 cycles, +3.7 % usable capacity</td></tr><tr><td>C firmware vs Python reference</td><td>max difference 0.0067 % SOC</td></tr><tr><td>Fault injection (software in the loop)</td><td>6 / 6 trip and recovery timings match the requirements</td></tr><tr><td>Unit tests</td><td>24 / 24, zero warnings with <code>-Wall -Wextra -pedantic</code></td></tr></tbody></table></div>
+<figure><img src="../../assets/figures/li-ion-bms/07_sil_faults.png" alt="Software-in-the-loop test traces showing fault injection, trips and recovery" loading="lazy"><figcaption>Fig. 3 · Software-in-the-loop: injected faults, trips and recoveries.</figcaption></figure>
+<figure><img src="../../assets/figures/li-ion-bms/06_balancing.png" alt="Cell state of charge spread shrinking over charge cycles with passive balancing" loading="lazy"><figcaption>Fig. 4 · Passive balancing over 8 cycles.</figcaption></figure>
+<h2 id="what-i-d-change"><span class="n">05</span>What I'd change</h2>
+<ul><li>Everything is at 25 °C. A production model needs parameter tables vs temperature; the dataset includes −20 to 40 °C tests.</li><li>The drive cycles were run on a different cell than the HPPC test (same model), so part of the remaining error is cell-to-cell difference.</li><li>The BQ76920's own hardware protection is the faster, independent safety layer. Configuring it over I²C is not written yet.</li><li>In city driving, regen pulses up to 5.3 A exceed the 4.5 A charge limit and would open the charge FET. A vehicle must cap regen torque at the BMS limit.</li></ul>
+<div class="related"><span class="k">Notebook entries for this project</span><a href="../../notebook/li-ion-bms-part-1-overview/"><span class="t">Li-ion BMS, part 1: design overview</span><span class="k2">Entry 003 →</span></a></div>
+</article>
+</div>
+<nav class="pager" aria-label="More projects">
+<a href="../../projects/"><span class="k">← All projects</span><span class="t">Projects</span></a>
+<a class="next" href="../../projects/tiny-spice/"><span class="k">Next project →</span><span class="t">Tiny SPICE</span></a>
+</nav>
+</div>
+</main>
+<footer class="site-footer">
+<div class="wrap">
+<div class="who"><strong>Radhe Patel</strong><span>Purdue University, West Lafayette, IN</span></div>
+<ul>
+<li><a href="https://github.com/radhepa">GitHub</a></li>
+<li><a href="mailto:pate3212@purdue.edu">Email</a></li>
+<li><a href="https://www.linkedin.com/in/radhe--patel">LinkedIn</a></li>
+<li><a href="../../feed.xml">RSS</a></li>
+</ul>
+</div>
+</footer>
+<script src="../../assets/js/site.js" defer></script>
+</body>
+</html>

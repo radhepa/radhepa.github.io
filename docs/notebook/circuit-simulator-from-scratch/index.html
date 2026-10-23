@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Writing a circuit simulator from scratch · Radhe Patel</title>
+<meta name="description" content="How a netlist becomes a matrix, how a diode gets solved, and how a capacitor is stepped through time, in about 1,250 lines of C.">
+<meta name="author" content="Radhe Patel">
+<meta name="theme-color" content="#F5F5F0">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Writing a circuit simulator from scratch · Radhe Patel">
+<meta property="og:description" content="How a netlist becomes a matrix, how a diode gets solved, and how a capacitor is stepped through time, in about 1,250 lines of C.">
+
+
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../../assets/img/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="Radhe Patel · Lab notebook" href="../../feed.xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;1,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="../../assets/css/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+<nav class="site-nav" aria-label="Primary"><ul><li><a href="../../">Home</a></li><li><a href="../../projects/">Projects</a></li><li><a href="../../notebook/" aria-current="page">Lab notebook</a></li><li><a href="../../awards/">Awards</a></li><li><a href="../../courses/">Courses</a></li><li><a href="../../about/">About</a></li><li><a class="nav-resume" href="../../assets/resume.pdf">Résumé</a></li></ul></nav>
+</header>
+<main id="main">
+<div class="wrap page page-narrow-top">
+<a class="back" href="../../notebook/">← Lab notebook</a>
+<div class="reading">
+<aside>
+<div class="meta-row"><span class="k">Entry</span><span>001</span></div>
+<div class="meta-row"><span class="k">Project</span><a href="../../projects/tiny-spice/">Tiny SPICE</a></div>
+<div class="meta-row"><span class="k">Published</span><time datetime="2026-10-08">Oct 8, 2026</time></div>
+<div class="meta-row"><span class="k">Reading time</span><span>2 min</span></div>
+<div class="meta-row"><span class="k">Tags</span><div class="pills"><span>circuits</span><span>simulation</span><span>C</span></div></div>
+</aside>
+<article class="prose">
+<h1>Writing a circuit simulator from scratch</h1>
+<p class="summary">How a netlist becomes a matrix, how a diode gets solved, and how a capacitor is stepped through time, in about 1,250 lines of C.</p>
+<h2>Goal</h2>
+<p>I use circuit simulators in class and on projects, but I treated them as a black box. I wanted to know what actually happens between typing a netlist and getting a waveform, so I wrote a small SPICE-style simulator in C with no libraries, and checked it against ngspice.</p>
+<h2>How it works</h2>
+<p><strong>Every circuit becomes A x = b.</strong> Kirchhoff's current law at each node gives one equation per node. The unknowns are the node voltages, plus one extra unknown for every voltage source and inductor, because their current can't be written from the voltages alone. Each element adds (&quot;stamps&quot;) a few numbers into the matrix. A resistor between nodes a and b adds +1/R on the diagonal at a and b and −1/R off the diagonal. Solving the system gives every voltage at once.</p>
+<p><strong>Capacitors become resistors, one step at a time.</strong> A capacitor follows i = C dv/dt. Over one time step h, the trapezoid area rule from calculus turns that into a conductance 2C/h in parallel with a current source that carries the previous step's voltage and current. So at every time point the whole circuit is just resistors and sources again. This is the stamp in the code:</p>
+<pre><code>/* i_new = geq * v_new - ieq */
+double geq = (pt-&gt;trap ? 2.0 : 1.0) * e-&gt;value / pt-&gt;h;
+double ieq = geq * e-&gt;v_prev + (pt-&gt;trap ? e-&gt;i_prev : 0.0);
+stamp_g(w, a, b, geq);
+stamp_i(w, a, b, ieq);</code></pre>
+<p><strong>Diodes need Newton-Raphson.</strong> The diode current is exponential in voltage, so the system isn't linear any more. The fix is to replace the diode with its tangent line at the current guess, solve, re-linearize at the new answer, and repeat until the answer stops moving.</p>
+<figure><img src="../../assets/figures/tiny-spice/validation.png" alt="tinyspice waveforms overlaid on exact solutions and ngspice for four circuits" loading="lazy"><figcaption>Fig. 1 · tinyspice vs exact solutions and ngspice. The buck converter matches ngspice to 0.009 % RMS.</figcaption></figure>
+<h2>What needed extra care</h2>
+<p>Getting the basic loop right was the easy part. Making it robust took most of the work, and every fix turned out to be something real SPICE also does:</p>
+<ul><li><strong>Ringing at sharp edges.</strong> The trapezoidal rule oscillates right after a discontinuity, like the edge of a PULSE source. One backward-Euler step after each corner damps it.</li><li><strong>Exponential overflow.</strong> A bad Newton guess can push the diode voltage high enough that e<sup>V/nVt</sup> overflows. Junction-voltage limiting caps how far one iteration can move.</li><li><strong>Missing corners.</strong> If a time step jumps over the corner of a pulse, the waveform is wrong. Breakpoints make the stepper land exactly on every corner.</li><li><strong>No DC starting point.</strong> When Newton can't find the operating point, gmin stepping starts with large conductances to ground (an easy, nearly linear problem) and removes them gradually.</li></ul>
+<div class="note"><p><strong>Note:</strong> Halving the time step cut the error by 4× with the trapezoidal rule and by 2× with backward Euler. The measured slopes were 1.92 and 0.98, matching the theory (error ∝ h² vs h).</p></div>
+<h2>Next</h2>
+<p>A MOSFET model, AC small-signal analysis, and a sparse solver so it can handle thousands of nodes instead of hundreds. The code is on <a href="https://github.com/radhepa/tinyspice">GitHub</a>.</p>
+<nav class="pager" aria-label="More entries">
+<a href="../../notebook/"><span class="k">← All entries</span><span class="t">Lab notebook</span></a>
+<a class="next" href="../../notebook/sic-inverter-part-1-device-model/"><span class="k">Entry 002 →</span><span class="t">SiC Inverter 800, part 1: a MOSFET model from the datasheet</span></a>
+</nav>
+</article>
+</div>
+</div>
+</main>
+<footer class="site-footer">
+<div class="wrap">
+<div class="who"><strong>Radhe Patel</strong><span>Purdue University, West Lafayette, IN</span></div>
+<ul>
+<li><a href="https://github.com/radhepa">GitHub</a></li>
+<li><a href="mailto:pate3212@purdue.edu">Email</a></li>
+<li><a href="https://www.linkedin.com/in/radhe--patel">LinkedIn</a></li>
+<li><a href="../../feed.xml">RSS</a></li>
+</ul>
+</div>
+</footer>
+<script src="../../assets/js/site.js" defer></script>
+</body>
+</html>

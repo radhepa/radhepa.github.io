@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>Radhe Patel · Lab notebook</title>
+<link>/notebook/</link>
+<description>Build logs and engineering notes.</description>
+<language>en-us</language>
+<item>
+<title>Li-ion BMS, part 1: design overview</title>
+<link>/notebook/li-ion-bms-part-1-overview/</link>
+<guid>/notebook/li-ion-bms-part-1-overview/</guid>
+<pubDate>Thu, 08 Oct 2026 12:00:00 GMT</pubDate>
+<description>A battery management system for a 4-cell pack, from public lab data to C firmware: what each piece does and how they connect.</description>
+</item>
+<item>
+<title>SiC Inverter 800, part 1: a MOSFET model from the datasheet</title>
+<link>/notebook/sic-inverter-part-1-device-model/</link>
+<guid>/notebook/sic-inverter-part-1-device-model/</guid>
+<pubDate>Thu, 08 Oct 2026 12:00:00 GMT</pubDate>
+<description>Before any design decision, I needed a simulation model of the silicon-carbide MOSFET that reproduces its datasheet. Here is how I built and checked it.</description>
+</item>
+<item>
+<title>Writing a circuit simulator from scratch</title>
+<link>/notebook/circuit-simulator-from-scratch/</link>
+<guid>/notebook/circuit-simulator-from-scratch/</guid>
+<pubDate>Thu, 08 Oct 2026 12:00:00 GMT</pubDate>
+<description>How a netlist becomes a matrix, how a diode gets solved, and how a capacitor is stepped through time, in about 1,250 lines of C.</description>
+</item>
+</channel>
+</rss>

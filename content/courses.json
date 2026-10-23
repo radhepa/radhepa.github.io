@@ -1,0 +1,46 @@
+{
+  "eyebrow": "Coursework",
+  "title": "Courses",
+  "intro": "",
+  "stats": [
+    { "label": "GPA", "value": "4.0" },
+    { "label": "Program", "value": "First-Year Engineering → EE" }
+  ],
+  "sections": [
+    {
+      "heading": "Spring 2027", "note": "Planned", "state": "planned", "layout": "cards",
+      "items": [
+        { "kicker": "MATH", "title": "Calculus III", "description": "Or credit by exam, then Linear Algebra and Differential Equations.", "highlight": false, "status": "", "style": "dashed", "link": "", "linkText": "" },
+        { "kicker": "PHYS", "title": "Physics", "description": "", "highlight": false, "status": "", "style": "dashed", "link": "", "linkText": "" },
+        { "kicker": "ENGR 13200", "title": "Transforming Ideas to Innovation II", "description": "", "highlight": false, "status": "", "style": "dashed", "link": "", "linkText": "" }
+      ]
+    },
+    {
+      "heading": "Fall 2026", "note": "Current", "state": "current", "layout": "cards",
+      "items": [
+        { "kicker": "MATH", "title": "Calculus II", "description": "", "highlight": false, "status": "", "style": "normal", "link": "https://github.com/radhepa/StudyMon", "linkText": "Related: StudyMon →" },
+        { "kicker": "CS 15900", "title": "Programming in C", "description": "", "highlight": false, "status": "", "style": "normal", "link": "https://github.com/radhepa/StudyMon", "linkText": "Related: StudyMon →" },
+        { "kicker": "CHM", "title": "Chemistry", "description": "", "highlight": false, "status": "", "style": "normal", "link": "", "linkText": "" },
+        { "kicker": "ENGR 13100", "title": "Transforming Ideas to Innovation I", "description": "", "highlight": false, "status": "", "style": "normal", "link": "", "linkText": "" },
+        { "kicker": "Seminar", "title": "Semiconductor Seminar", "description": "", "highlight": false, "status": "", "style": "normal", "link": "", "linkText": "" },
+        { "kicker": "EPICS", "title": "Assistive Technology team", "description": "", "highlight": false, "status": "", "style": "normal", "link": "/projects/#tm", "linkText": "Related: Assistive writing device →" }
+      ]
+    },
+    {
+      "heading": "Summer 2026", "note": "EABC Early Start", "state": "", "layout": "cards",
+      "items": [
+        { "kicker": "ENGR", "title": "ENGR 19500", "description": "", "highlight": false, "status": "", "style": "normal", "link": "", "linkText": "" },
+        { "kicker": "VIP", "title": "Vertically Integrated Projects", "description": "", "highlight": false, "status": "", "style": "normal", "link": "", "linkText": "" },
+        { "kicker": "COM", "title": "Communication", "description": "", "highlight": false, "status": "", "style": "normal", "link": "", "linkText": "" }
+      ]
+    },
+    {
+      "heading": "Outside the classroom", "note": "Online and club courses", "state": "", "layout": "list",
+      "items": [
+        { "kicker": "HarvardX", "title": "CS50P: Introduction to Programming with Python", "description": "", "highlight": false, "status": "done", "style": "normal", "link": "", "linkText": "" },
+        { "kicker": "CodePath", "title": "Applications of AI Engineering", "description": "", "highlight": false, "status": "progress", "style": "normal", "link": "", "linkText": "" },
+        { "kicker": "Purdue", "title": "EBEC Python programming certificate", "description": "", "highlight": false, "status": "progress", "style": "normal", "link": "", "linkText": "" }
+      ]
+    }
+  ]
+}
